@@ -250,6 +250,9 @@ class KilterAPI:
                     for table in _ALL_TABLES
                     if (table,) in db_tables
                 }
+                for table_name, table in self.tables.items():
+                    for col in [c for c in table.columns if "uuid" in c]:
+                        table[col] = table[col].str.upper()
                 # Also read some DB specific tables, these arent ones that we can sync from the server
                 self.tables["difficulty_grades"] = pd.read_sql_query(
                     "SELECT * FROM difficulty_grades", conn
@@ -257,4 +260,11 @@ class KilterAPI:
                 # Update sync times
                 syncs = pd.read_sql_query("SELECT * FROM shared_syncs", conn)
                 self._sync_times.update({t: d for t, d in syncs.apply(tuple, axis=1)})
+        self._clean_tables()
+
+    def _clean_tables(self):
+        # Ensure that any UUID columns are all upper case
+        for table_name, table in self.tables.items():
+            for col in [c for c in table.columns if "uuid" in c]:
+                table[col] = table[col].str.upper()
 
