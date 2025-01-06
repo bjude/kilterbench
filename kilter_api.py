@@ -1,7 +1,7 @@
 from collections import defaultdict
 import io
 import time
-from typing import TypedDict, Literal
+from typing import TypedDict, Literal, get_args
 import uuid
 import zipfile
 
@@ -33,7 +33,7 @@ TableLiteral = Literal[
     "tags",
     "circuits",
 ]
-_ALL_TABLES = list(TableLiteral.__args__)
+_ALL_TABLES = list(get_args(TableLiteral))
 _INDEX_COLS = {
     "climbs": ["uuid"],
     "climb_stats": ["climb_uuid", "angle"],
