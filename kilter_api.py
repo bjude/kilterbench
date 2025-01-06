@@ -154,7 +154,6 @@ class KilterAPI:
                 #    df = df[~df.duplicated(_INDEX_COLS[table], "last")]
                 # Update needs to only
                 self.tables[table] = df
-        self._clean_NAs()
 
     def get_climb_stats(self, climb_uuid: str, angle: int) -> ClimbStats:
         response = requests.get(
@@ -259,8 +258,3 @@ class KilterAPI:
                 syncs = pd.read_sql_query("SELECT * FROM shared_syncs", conn)
                 self._sync_times.update({t: d for t, d in syncs.apply(tuple, axis=1)})
 
-    def _clean_NAs(self):
-        #na_angles = self.tables["climbs"]["angle"].isna()
-        #self.tables["climbs"] = self.tables["climbs"][~na_angles]
-        #self.tables["climbs"]["angle"] = self.tables["climbs"]["angle"].astype(int)
-        pass
