@@ -43,8 +43,9 @@ def rescale_peak(hist: np.ndarray, max_peak_ratio: float) -> np.ndarray:
 
 
 def log_score(data, dist, *params):
-    pdf = dist.pdf(data, *params)
-    return -np.log(np.maximum(pdf, 1e-5)).mean()
+    unique, counts = np.unique(data, return_counts=True)
+    pdf = dist.pdf(unique, *params)
+    return (-np.log(np.maximum(pdf, 1e-5)) * counts).sum() / counts.sum()
 
 
 def crps(data, dist, *params):
