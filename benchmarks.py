@@ -131,5 +131,5 @@ def get_benchmarks(
     joined = joined.join(
         grades_df["boulder_name"].str.split("/").str[1],
         on=joined["loc"].round().astype(int),
-    ).rename(columns={"verm_name": "grade"})
+    ).rename(columns={"boulder_name": "grade"})
     return joined
