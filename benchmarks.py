@@ -130,6 +130,6 @@ def get_benchmarks(
     joined = popular.join(params_df)
     joined = joined.join(
         grades_df["boulder_name"].str.split("/").str[1],
-        on=joined["loc"].round().astype(int),
+        on=joined["mode"].round().astype(int),
     ).rename(columns={"boulder_name": "grade"})
     return joined
