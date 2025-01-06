@@ -178,7 +178,7 @@ class KilterAPI:
             "red", "orange", "green", "blue", "purple", "pink", "grey"
         ] = "red",
         is_public: bool = False,
-    ) -> None:
+    ) -> str:
         COLOURS = {
             "red": "FF0000",
             "orange": "FF8000",
@@ -188,7 +188,7 @@ class KilterAPI:
             "pink": "FF00FF",
             "grey": "808080",
         }
-        circuit_id = uuid.uuid4()
+        circuit_id = str(uuid.uuid4()).replace("-", "")
         response = requests.post(
             f"{self._URL}/circuits/save",
             data={
@@ -199,9 +199,11 @@ class KilterAPI:
                 "color": COLOURS[colour],
                 "is_public": 1 if is_public else 0,
             },
+            cookies={"token": self.token},
         )
         response.raise_for_status()
         payload = response.json()
+        return circuit_id
 
     def add_climb_to_circuit(self, climb_id: str, circuit_id: str) -> None:
         # Get current circuits that this climb is part of
@@ -218,8 +220,9 @@ class KilterAPI:
                 f"{self._URL}/climb_circuits/save",
                 data={
                     "climb_uuid": climb_id,
-                    "circuit_uuids": existing_circuit_ids + [circuit_id],
+                    "circuit_uuids[]": existing_circuit_ids + [circuit_id],
                 },
+                cookies={"token": self.token},
             )
             response.raise_for_status()
             payload = response.json()
