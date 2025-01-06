@@ -92,13 +92,13 @@ def plot_model(grades: np.ndarray, params: tuple[float, float, float], label: st
 
 
 def get_popular(session: KilterAPI, minimum_ascents: int, angle: int | None):
-    climbs = session.tables["climbs"]
-    climb_stats = session.tables["climb_stats"].set_index(["climb_uuid", "angle"])
-    all_climbs = climbs.join(
-        climb_stats,
-        on=["uuid", "angle"],
+    climbs = session.tables["climbs"].set_index("uuid")
+    climb_stats = session.tables["climb_stats"]
+    all_climbs = climb_stats.join(
+        climbs,
+        on="climb_uuid",
         rsuffix="_r",
-    )[["uuid", "angle", "name", "ascensionist_count", "setter_username"]]
+    )[["climb_uuid", "angle", "name", "ascensionist_count", "setter_username"]]
     popular_climbs = all_climbs[all_climbs["ascensionist_count"] >= minimum_ascents]
     if angle is not None:
         popular_climbs = popular_climbs[popular_climbs["angle"] == angle]
@@ -106,7 +106,7 @@ def get_popular(session: KilterAPI, minimum_ascents: int, angle: int | None):
 
 
 def fit(row, session):
-    hist = grade_histogram(session, row.uuid, int(row.angle))
+    hist = grade_histogram(session, row.climb_uuid, int(row.angle))
     params = fit_grade_curve(hist)
     return pd.Series(params, index=["shape", "loc", "scale"])
 
