@@ -97,12 +97,7 @@ class KilterAPI:
         self.token = payload["session"]["token"]
         self.user_id = payload["session"]["user_id"]
         self._download_db()
-        for table, df in self.tables.items():
-            print(f"{table}: {df.shape}")
         self.sync()
-        print('sync')
-        for table, df in self.tables.items():
-            print(f"{table}: {df.shape}")
 
     def sync(self, tables: TableLiteral | list[TableLiteral] | None = None):
         tables = tables or _ALL_TABLES
@@ -133,7 +128,6 @@ class KilterAPI:
             for s in updates:
                 table = s["table_name"]
                 synced_at = s["last_synchronized_at"]
-                print(f"Synced {table} up to {synced_at}")
                 sync_times[table] = synced_at
                 self._sync_times[table] = synced_at
             complete = json["_complete"]

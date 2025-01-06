@@ -63,10 +63,7 @@ def fit_grade_curve(grade_histogram: np.ndarray) -> tuple[float, float, float]:
     res = minimize(
         opt_func, (0, assigned_grade, 1.0), (grade_data, assigned_grade, weight)
     )
-    print(res)
     params = res.x
-    print("LogScore: ", log_score(grade_data, skewnorm, *params))
-    print("mode delta: ", mode_delta(params[1], grade_data, assigned_grade))
     return params
     # except RuntimeError:
     #    print("optimsation failed")
