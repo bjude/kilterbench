@@ -91,7 +91,7 @@ def plot_model(grades: np.ndarray, params: tuple[float, float, float], label: st
         "\n".join(
             [
                 f"shape: {params[0]:.2f}, loc: {params[1]:.2f}, scale: {params[2]:.2f}",
-                f"mode: {skewnorm_mode(*params)}",
+                f"mode: {skewnorm_mode(*params):.2f}",
             ]
         ),
         size=10,
