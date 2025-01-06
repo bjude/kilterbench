@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
 from scipy.stats import skewnorm
+from matplotlib import pyplot as plt
 
 from kilter_api import KilterAPI
 from stats import histogram_to_data, skewnorm_mode, log_score, rescale_peak
@@ -21,11 +22,11 @@ def grade_histogram(session: KilterAPI, climb_id: str, angle: int) -> np.ndarray
 def fit_grade_curve(grade_histogram: np.ndarray) -> tuple[float, float, float]:
     # grade_histogram = grade_histogram.copy()
 
-    def mode_delta(x: float, data: np.ndarray, target_mode: float):
+    def mode_delta(x: float, data: np.ndarray, target_mode: float) -> float:
         params = skewnorm.fit(data, floc=x)
         return skewnorm_mode(*params) - target_mode
 
-    def opt_func(params, data, target_mode, weight):
+    def opt_func(params, data, target_mode, weight) -> float:
         params[2] = max(params[2], 1e-8)
         shape, loc, scale = params
         delta = mode_delta(loc, data, target_mode)
@@ -72,7 +73,7 @@ def fit_grade_curve(grade_histogram: np.ndarray) -> tuple[float, float, float]:
     #    return skewnorm.fit(grade_data, floc=floc)
 
 
-def plot_model(grades, params):
+def plot_model(grades: np.ndarray, params: tuple[float, float, float], label: str):
     xs = np.linspace(1, 40, 1000)
 
     fig, ax1 = plt.subplots()
