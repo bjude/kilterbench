@@ -62,7 +62,7 @@ def fit_grade_curve(grade_histogram: np.ndarray) -> tuple[float, float, float]:
     weight = 10
     # res = minimize(opt_func, params, (grade_data, assigned_grade, weight))
     res = minimize(
-        opt_func, (0, assigned_grade, 1.0), (grade_data, assigned_grade, weight)
+        opt_func, (0, assigned_grade, 1.0), (grade_data, assigned_grade, weight), 'BFGS'
     )
     params = res.x
     return params
