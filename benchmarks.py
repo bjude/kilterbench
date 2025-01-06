@@ -86,9 +86,17 @@ def plot_model(grades: np.ndarray, params: tuple[float, float, float], label: st
     ax1.set_ylim(bottom=0)
     ax2.set_ylim(bottom=0)
 
+    fig.suptitle(label)
     ax1.set_title(
-        f"shape: {params[0]:.2f}, loc: {params[1]:.2f}, scale: {params[2]:.2f}"
+        "\n".join(
+            [
+                f"shape: {params[0]:.2f}, loc: {params[1]:.2f}, scale: {params[2]:.2f}",
+                f"mode: {skewnorm_mode(*params)}",
+            ]
+        ),
+        size=10,
     )
+    return fig
 
 
 def get_popular(session: KilterAPI, minimum_ascents: int, angle: int | None):
