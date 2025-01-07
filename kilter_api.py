@@ -80,6 +80,7 @@ class KilterAPI:
     token: str
     user_id: int
     tables: dict[TableLiteral, pd.DataFrame] = {}
+    difficulty_grades: pd.DataFrame
 
     def __init__(self, username: str, password: str) -> None:
         response = requests.post(
@@ -263,7 +264,7 @@ class KilterAPI:
                     for col in [c for c in table.columns if "uuid" in c]:
                         table[col] = table[col].str.upper()
                 # Also read some DB specific tables, these arent ones that we can sync from the server
-                self.tables["difficulty_grades"] = pd.read_sql_query(
+                self.difficulty_grades = pd.read_sql_query(
                     "SELECT * FROM difficulty_grades", conn
                 )
                 # Update sync times

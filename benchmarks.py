@@ -125,7 +125,7 @@ def get_benchmarks(
     popular = get_popular(session, minimum_ascents, angle)
     params_df = popular.apply(fit, args=(session,), axis=1)
 
-    grades_df = session.tables["difficulty_grades"]
+    grades_df = session.difficulty_grades
     params_df["mode"] = params_df.apply(lambda p: skewnorm_mode(*p), axis=1)
     joined = popular.join(params_df)
     joined = joined.join(
