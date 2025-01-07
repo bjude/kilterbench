@@ -72,16 +72,15 @@ class ClimbStats(TypedDict):
 
 class KilterAPI:
     _URL: str = "https://kilterboardapp.com"
-    _sync_times: dict[TableLiteral, str] = {
-        table: "1970-01-01 00:00:00.000000" for table in _ALL_TABLES
-    }
+    _sync_times: dict[TableLiteral, str]
 
     token: str
     user_id: int
-    tables: dict[TableLiteral, pd.DataFrame] = {}
+    tables: dict[TableLiteral, pd.DataFrame]
     difficulty_grades: pd.DataFrame
 
     def __init__(self, username: str, password: str) -> None:
+        self.reset()
         response = requests.post(
             f"{self._URL}/sessions",
             data={
@@ -224,6 +223,12 @@ class KilterAPI:
             )
             response.raise_for_status()
             payload = response.json()
+
+    def reset(self) -> None:
+        self.tables = {}
+        self._sync_times: dict[TableLiteral, str] = {
+            table: "1970-01-01 00:00:00.000000" for table in _ALL_TABLES
+        }
 
     def _download_db(self) -> None:
         """
