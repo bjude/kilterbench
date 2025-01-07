@@ -1,7 +1,7 @@
 from collections import defaultdict
 import io
 import time
-from typing import TypedDict, Literal, get_args
+from typing import Any, TypedDict, Literal, get_args
 import uuid
 import zipfile
 
@@ -127,40 +127,39 @@ class KilterAPI:
             json = response.json()
             updates = json.get("user_syncs", []) + json.get("shared_syncs", [])
             for s in updates:
-                table = s["table_name"]
+                table_name = s["table_name"]
                 synced_at = s["last_synchronized_at"]
-                sync_times[table] = synced_at
-                self._sync_times[table] = synced_at
+                sync_times[table_name] = synced_at
+                self._sync_times[table_name] = synced_at
             complete = json["_complete"]
-            for table, response_data in json.items():
-                if table in tables:
-                    output[table].extend(response_data)
-        for table_name, data in output.items():
-            if table_name in _ALL_TABLES:
-                cols = list(data[0].keys())
-                df = pd.DataFrame.from_dict(
-                    {i: d for i, d in enumerate(data)}, orient="index", columns=cols
-                )
-                # Ensure any uuid columns are all uppercase
-                for col in [c for c in df.columns if "uuid" in c]:
-                    df[col] = df[col].str.upper()
-                if table_name not in self.tables:
-                    continue
-                if table_name in _INDEX_COLS:
-                    # Set the index to the index col(s), update any existing rows,
-                    # then add any that arent in the index
-                    table = self.tables[table_name].set_index(_INDEX_COLS[table_name])
-                    df = df.set_index(_INDEX_COLS[table_name])
-                    table.update(df)
-                    df = pd.concat(
-                        [table, df.loc[df.index.difference(table.index)]],
-                        verify_integrity=True,
-                    ).reset_index()
-                else:
-                    table = self.tables[table_name]
-                    df = pd.concat([table, df], ignore_index=True)
-                # Update needs to only
-                self.tables[table_name] = df
+            for table_name, response_data in json.items():
+                if table_name in tables:
+                    self._update_table(table_name, response_data)
+
+    def _update_table(
+        self, table_name: TableLiteral, data: list[dict[str, Any]]
+    ) -> None:
+        cols = list(data[0].keys())
+        df = pd.DataFrame.from_dict(
+            {i: d for i, d in enumerate(data)}, orient="index", columns=cols
+        )
+        # Ensure any uuid columns are all uppercase
+        for col in [c for c in cols if "uuid" in c]:
+            df[col] = df[col].str.upper()
+        if table_name in _INDEX_COLS:
+            # Set the index to the index col(s), update any existing rows,
+            # then add any that arent in the index
+            table = self.tables[table_name].set_index(_INDEX_COLS[table_name])
+            df = df.set_index(_INDEX_COLS[table_name])
+            table.update(df)
+            df = pd.concat(
+                [table, df.loc[df.index.difference(table.index)]],
+                verify_integrity=True,
+            ).reset_index()
+        else:
+            table = self.tables[table_name]
+            df = pd.concat([table, df], ignore_index=True)
+        self.tables[table_name] = df
 
     def get_climb_stats(self, climb_uuid: str, angle: int) -> ClimbStats:
         response = requests.get(
