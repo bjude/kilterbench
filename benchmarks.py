@@ -44,7 +44,7 @@ def fit_grade_curve(grade_histogram: np.ndarray) -> tuple[float, float, float]:
 
     grade_data = histogram_to_data(grades, grade_histogram)
     params = skewnorm.fit(grade_data)
-    weight = 10
+    weight = 3
     res = minimize(
         opt_func, (0, assigned_grade, 1.0), (grade_data, assigned_grade, weight), "BFGS"
     )
