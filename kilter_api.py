@@ -1,4 +1,3 @@
-from collections import defaultdict
 import io
 import time
 from typing import Any, TypedDict, Literal, get_args
@@ -100,7 +99,7 @@ class KilterAPI:
         self._download_db()
         self.sync()
 
-    def sync(self, tables: TableLiteral | list[TableLiteral] | None = None):
+    def sync(self, tables: TableLiteral | list[TableLiteral] | None = None) -> None:
         tables = tables or _ALL_TABLES
         if isinstance(tables, str):
             tables = [tables]
@@ -116,7 +115,6 @@ class KilterAPI:
             }
         )
         complete = False
-        output: dict[TableLiteral, list[dict]] = defaultdict(list)
         while not complete:
             response = requests.post(
                 f"{self._URL}/sync",
@@ -227,7 +225,7 @@ class KilterAPI:
             response.raise_for_status()
             payload = response.json()
 
-    def _download_db(self):
+    def _download_db(self) -> None:
         """
         The sqlite3 database is stored in the assets folder of the APK files for the Android app of each board.
 
@@ -276,4 +274,3 @@ class KilterAPI:
         for table_name, table in self.tables.items():
             for col in [c for c in table.columns if "uuid" in c]:
                 table[col] = table[col].str.upper()
-

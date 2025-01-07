@@ -5,6 +5,7 @@ import pandas as pd
 from scipy.optimize import minimize
 from scipy.stats import skewnorm
 from matplotlib import pyplot as plt
+from matplotlib.figure import Figure
 
 from kilter_api import KilterAPI
 from stats import histogram_to_data, skewnorm_mode, log_score, rescale_peak
@@ -20,8 +21,6 @@ def grade_histogram(session: KilterAPI, climb_id: str, angle: int) -> np.ndarray
 
 
 def fit_grade_curve(grade_histogram: np.ndarray) -> tuple[float, float, float]:
-    # grade_histogram = grade_histogram.copy()
-
     def mode_delta(x: float, data: np.ndarray, target_mode: float) -> float:
         params = skewnorm.fit(data, floc=x)
         return skewnorm_mode(*params) - target_mode
@@ -32,48 +31,28 @@ def fit_grade_curve(grade_histogram: np.ndarray) -> tuple[float, float, float]:
         delta = mode_delta(loc, data, target_mode)
         # score = crps(data, skewnorm, *params)
         score = log_score(data, skewnorm, *params)
-        return delta * delta + weight * score  # + np.square(shape).sum() * 0.0001
+        return delta * delta + weight * score
 
     grades = np.arange(1, 40)
     idxmax = grade_histogram.argmax()
     assigned_grade: int = grades[idxmax]
 
     target_assigned_proportion = 0.5
-    grade_histogram = rescale_peak(grade_histogram, target_assigned_proportion)
+    grade_histogram = rescale_peak(grade_histogram.copy(), target_assigned_proportion)
 
     grade_data = histogram_to_data(grades, grade_histogram)
     params = skewnorm.fit(grade_data)
-    # margin = 1.0
-    # if abs(delta := (skewnorm_mode(*params) - assigned_grade)) > margin:
-    #    target_grade = assigned_grade + margin * (1 if delta > 0 else -1)
-    #    floc, res = newton(
-    #        mode_delta,
-    #        assigned_grade,
-    #        args=(grade_data, target_grade),
-    #        disp=False,
-    #        full_output=True,
-    #        tol=1e-5,
-    #    )
-    #    params = skewnorm.fit(grade_data, floc=floc)
-    #    if not res.converged:
-    #        raise WrappedDataException(
-    #            params, res, mode_delta(floc, grade_data, assigned_grade)
-    #        )
     weight = 10
-    # res = minimize(opt_func, params, (grade_data, assigned_grade, weight))
     res = minimize(
-        opt_func, (0, assigned_grade, 1.0), (grade_data, assigned_grade, weight), 'BFGS'
+        opt_func, (0, assigned_grade, 1.0), (grade_data, assigned_grade, weight), "BFGS"
     )
-    params = res.x
+    params = tuple(res.x)
     return params
-    # except RuntimeError:
-    #    print("optimsation failed")
-    #    grade_peak = grades[grade_histogram.argmax()]
-    #    floc = newton(f, assigned_grade, args=(grade_data, grade_peak))
-    #    return skewnorm.fit(grade_data, floc=floc)
 
 
-def plot_model(grades: np.ndarray, params: tuple[float, float, float], label: str):
+def plot_model(
+    grades: np.ndarray, params: tuple[float, float, float], label: str
+) -> Figure:
     xs = np.linspace(1, 40, 1000)
 
     fig, ax1 = plt.subplots()
@@ -99,7 +78,9 @@ def plot_model(grades: np.ndarray, params: tuple[float, float, float], label: st
     return fig
 
 
-def get_popular(session: KilterAPI, minimum_ascents: int, angle: int | None):
+def get_popular(
+    session: KilterAPI, minimum_ascents: int, angle: int | None = None
+) -> pd.DataFrame:
     climbs = session.tables["climbs"].set_index("uuid")
     climb_stats = session.tables["climb_stats"]
     all_climbs = climb_stats.join(
@@ -113,14 +94,14 @@ def get_popular(session: KilterAPI, minimum_ascents: int, angle: int | None):
     return popular_climbs
 
 
-def fit(row, session):
+def fit(row, session) -> pd.Series:
     hist = grade_histogram(session, row.climb_uuid, int(row.angle))
     params = fit_grade_curve(hist)
     return pd.Series(params, index=["shape", "loc", "scale"])
 
 
 def get_benchmarks(
-    session: KilterAPI, minimum_ascents: int, angle: int
+    session: KilterAPI, minimum_ascents: int, angle: int | None = None
 ) -> pd.DataFrame:
     popular = get_popular(session, minimum_ascents, angle)
     params_df = popular.apply(fit, args=(session,), axis=1)
