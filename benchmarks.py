@@ -1,4 +1,6 @@
+import copy
 from functools import cache
+import multiprocessing
 
 import numpy as np
 import pandas as pd
@@ -100,11 +102,35 @@ def fit(row, session) -> pd.Series:
     return pd.Series(params, index=["shape", "loc", "scale"])
 
 
+def _parallel_hist(uuid: str, angle: int):
+    return grade_histogram(session, uuid, int(angle))
+
+
+def _worker_init(_session: KilterAPI):
+    global session
+    session = _session
+
+
 def get_benchmarks(
     session: KilterAPI, minimum_ascents: int, angle: int | None = None
 ) -> pd.DataFrame:
     popular = get_popular(session, minimum_ascents, angle)
-    params_df = popular.apply(fit, args=(session,), axis=1)
+
+    session = copy.copy(session)
+    session.reset()
+
+    with multiprocessing.Pool(initializer=_worker_init, initargs=(session,)) as pool:
+        histograms = pool.starmap(
+            _parallel_hist,
+            zip(
+                popular["climb_uuid"].to_list(),
+                popular["angle"].to_list(),
+            ),
+        )
+        params = pool.map(fit_grade_curve, histograms)
+        params_df = pd.DataFrame(
+            params, index=popular.index, columns=["shape", "loc", "scale"]
+        )
 
     grades_df = session.difficulty_grades
     params_df["mode"] = params_df.apply(lambda p: skewnorm_mode(*p), axis=1)
