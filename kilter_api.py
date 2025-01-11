@@ -179,6 +179,11 @@ class KilterAPI:
         ] = "red",
         is_public: bool = False,
     ) -> str:
+        # Check if a circuit with this name exists already
+        self.sync("circuits")
+        for _, row in self.tables["circuits"].iterrows():
+            if row["name"] == name:
+                return row["uuid"]
         COLOURS = {
             "red": "FF0000",
             "orange": "FF8000",
