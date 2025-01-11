@@ -156,7 +156,7 @@ class KilterAPI:
                 [table, df.loc[df.index.difference(table.index)]],
                 verify_integrity=True,
             ).reset_index()
-        else:
+        elif table_name in self.tables:
             table = self.tables[table_name]
             df = pd.concat([table, df], ignore_index=True)
         self.tables[table_name] = df
