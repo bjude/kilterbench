@@ -202,27 +202,20 @@ class KilterAPI:
         payload = response.json()
         return circuit_id
 
-    def add_climb_to_circuit(self, climb_id: str, circuit_id: str) -> None:
-        # Get current circuits that this climb is part of
+    def set_circuit(self, circuit_id: str, climb_ids: list[str]) -> None:
         self.sync("circuits")
-        circuits_df = self.tables["circuits"]
-        climb_in_circuit = circuits_df["climbs"].map(
-            lambda circuit: any(climb["uuid"] == climb_id for climb in circuit)
+        # Get current circuits that this climb is part of
+        response = requests.post(
+            f"{self._URL}/circuit_climbs/save",
+            data={
+                "circuit_uuid": circuit_id,
+                "climb_uuids[]": climb_ids,
+            },
+            cookies={"token": self.token},
         )
-        existing_circuit_ids = circuits_df[climb_in_circuit]["uuid"].to_list()
-        # If the climb isint already in this circuit, append circuit id to the list
-        # of circuits and POST to server
-        if circuit_id not in existing_circuit_ids:
-            response = requests.post(
-                f"{self._URL}/climb_circuits/save",
-                data={
-                    "climb_uuid": climb_id,
-                    "circuit_uuids[]": existing_circuit_ids + [circuit_id],
-                },
-                cookies={"token": self.token},
-            )
-            response.raise_for_status()
-            payload = response.json()
+        response.raise_for_status()
+        payload = response.json()
+        self.sync("circuits")
 
     def reset(self) -> None:
         self.tables = {}
