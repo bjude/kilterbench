@@ -2,11 +2,11 @@ import io
 import time
 from typing import Any, TypedDict, Literal, get_args
 import uuid
+import sqlite3
 import zipfile
 
 import pandas as pd
 import requests
-import sqlite3
 
 TableLiteral = Literal[
     "products",

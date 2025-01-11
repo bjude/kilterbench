@@ -9,8 +9,8 @@ from scipy.stats import skewnorm
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 
-from kilter_api import KilterAPI
-from stats import histogram_to_data, skewnorm_mode, log_score, rescale_peak
+from src.kilterbench.kilter_api import KilterAPI
+from src.kilterbench.stats import histogram_to_data, skewnorm_mode, log_score, rescale_peak
 
 
 @cache
