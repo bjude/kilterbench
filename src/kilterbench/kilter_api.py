@@ -1,12 +1,14 @@
 import io
 import time
-from typing import Any, TypedDict, Literal, get_args
+from typing import Any, Literal, get_args
 import uuid
 import sqlite3
 import zipfile
 
 import pandas as pd
 import requests
+
+from kilterbench.types import ClimbStats
 
 TableLiteral = Literal[
     "products",
@@ -38,36 +40,6 @@ _INDEX_COLS = {
     "climb_stats": ["climb_uuid_upper", "angle"],
     "circuits": ["uuid_upper"],
 }
-
-
-class GradeHistogramEntry(TypedDict):
-    difficulty: int
-    count: int
-
-
-class QualityHistogramEntry(TypedDict):
-    quality: int
-    count: int
-
-
-class AscentEntry(TypedDict):
-    attempt_id: int
-    angle: int
-    quality: int
-    difficulty: int
-    is_benchmark: bool
-    is_mirror: bool
-    comment: str
-    climbed_at: str
-    user_id: int
-    user_username: int
-    user_avatar_image: None | str
-
-
-class ClimbStats(TypedDict):
-    difficulty: list[GradeHistogramEntry]
-    quality: list[QualityHistogramEntry]
-    ascents: list[AscentEntry]
 
 
 class KilterAPI:
