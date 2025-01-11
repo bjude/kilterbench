@@ -83,11 +83,11 @@ def plot_model(
 def get_popular(
     session: KilterAPI, minimum_ascents: int, angle: int | None = None
 ) -> pd.DataFrame:
-    climbs = session.tables["climbs"].set_index("uuid")
+    climbs = session.tables["climbs"].set_index("uuid_upper")
     climb_stats = session.tables["climb_stats"]
     all_climbs = climb_stats.join(
         climbs,
-        on="climb_uuid",
+        on="climb_uuid_upper",
         rsuffix="_r",
     )[["climb_uuid", "angle", "name", "ascensionist_count", "setter_username"]]
     popular_climbs = all_climbs[all_climbs["ascensionist_count"] >= minimum_ascents]

@@ -34,9 +34,9 @@ TableLiteral = Literal[
 ]
 _ALL_TABLES = list(get_args(TableLiteral))
 _INDEX_COLS = {
-    "climbs": ["uuid"],
-    "climb_stats": ["climb_uuid", "angle"],
-    "circuits": ["uuid"],
+    "climbs": ["uuid_upper"],
+    "climb_stats": ["climb_uuid_upper", "angle"],
+    "circuits": ["uuid_upper"],
 }
 
 
@@ -141,14 +141,17 @@ class KilterAPI:
             {i: d for i, d in enumerate(data)}, orient="index", columns=cols
         )
         # Ensure any uuid columns are all uppercase
-        for col in [c for c in cols if "uuid" in c]:
-            df[col] = df[col].str.upper()
+        uuid_cols = [c for c in cols if c.endswith("uuid")]
+        for col in uuid_cols:
+            df[f"{col}_upper"] = df[col].str.upper()
         if table_name in _INDEX_COLS:
             # Set the index to the index col(s), update any existing rows,
             # then add any that arent in the index
             table = self.tables[table_name].set_index(_INDEX_COLS[table_name])
             df = df.set_index(_INDEX_COLS[table_name])
-            table.update(df)
+            # Update the table, except for any UUID columns. For some reason some climb
+            # uuids change case between updates and we want to maintain the original case
+            table.update(df.drop(uuid_cols, axis=1))
             df = pd.concat(
                 [table, df.loc[df.index.difference(table.index)]],
                 verify_integrity=True,
@@ -255,9 +258,6 @@ class KilterAPI:
                     for table in _ALL_TABLES
                     if (table,) in db_tables
                 }
-                for table_name, table in self.tables.items():
-                    for col in [c for c in table.columns if "uuid" in c]:
-                        table[col] = table[col].str.upper()
                 # Also read some DB specific tables, these arent ones that we can sync from the server
                 self.difficulty_grades = pd.read_sql_query(
                     "SELECT * FROM difficulty_grades", conn
@@ -265,10 +265,7 @@ class KilterAPI:
                 # Update sync times
                 syncs = pd.read_sql_query("SELECT * FROM shared_syncs", conn)
                 self._sync_times.update({t: d for t, d in syncs.apply(tuple, axis=1)})
-        self._clean_tables()
-
-    def _clean_tables(self):
         # Ensure that any UUID columns are all upper case
         for table_name, table in self.tables.items():
-            for col in [c for c in table.columns if "uuid" in c]:
-                table[col] = table[col].str.upper()
+            for col in [c for c in table.columns if c.endswith("uuid")]:
+                table[f"{col}_upper"] = table[col].str.upper()
