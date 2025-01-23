@@ -8,7 +8,7 @@ import zipfile
 import pandas as pd
 import requests
 
-from kilterbench.types import ClimbStats
+from .types import ClimbStats
 
 TableLiteral = Literal[
     "products",
