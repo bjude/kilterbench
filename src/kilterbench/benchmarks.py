@@ -127,10 +127,12 @@ def get_benchmarks(
                 popular["angle"].to_list(),
             ),
         )
+        print("Histograms retrieved...")
         params = pool.map(fit_grade_curve, histograms)
         params_df = pd.DataFrame(
             params, index=popular.index, columns=["shape", "loc", "scale"]
         )
+        print("Curves Fitted")
 
     grades_df = session.difficulty_grades
     params_df["mode"] = params_df.apply(lambda p: skewnorm_mode(*p), axis=1)
