@@ -112,14 +112,19 @@ def _worker_init(_session: KilterAPI):
 
 
 def get_benchmarks(
-    session: KilterAPI, minimum_ascents: int, angle: int | None = None
+    session: KilterAPI,
+    minimum_ascents: int,
+    angle: int | None = None,
+    num_processes: int | None = None,
 ) -> pd.DataFrame:
     popular = get_popular(session, minimum_ascents, angle)
 
     session = copy.copy(session)
     session.reset()
 
-    with multiprocessing.Pool(initializer=_worker_init, initargs=(session,)) as pool:
+    with multiprocessing.Pool(
+        processes=num_processes, initializer=_worker_init, initargs=(session,)
+    ) as pool:
         histograms = pool.starmap(
             _parallel_hist,
             zip(
