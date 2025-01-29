@@ -10,7 +10,12 @@ from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 
 from src.kilterbench.kilter_api import KilterAPI
-from src.kilterbench.stats import histogram_to_data, skewnorm_mode, log_score, rescale_peak
+from src.kilterbench.stats import (
+    histogram_to_data,
+    skewnorm_mode,
+    mean_score,
+    rescale_peak,
+)
 
 
 @cache
@@ -23,16 +28,23 @@ def grade_histogram(session: KilterAPI, climb_id: str, angle: int) -> np.ndarray
 
 
 def fit_grade_curve(grade_histogram: np.ndarray) -> tuple[float, float, float]:
-    def mode_delta(x: float, data: np.ndarray, target_mode: float) -> float:
-        params = skewnorm.fit(data, floc=x)
+    scorer = "crps"
+
+    def mode_delta(params: tuple[float, ...], target_mode: float) -> float:
         return skewnorm_mode(*params) - target_mode
 
-    def opt_func(params, data, target_mode, weight) -> float:
-        params[2] = max(params[2], 1e-8)
+    def opt_func(
+        params: tuple[float, ...],
+        grades: np.ndarray,
+        hist: np.ndarray,
+        target_mode: float,
+        weight: float,
+    ) -> float:
         shape, loc, scale = params
-        delta = mode_delta(loc, data, target_mode)
-        # score = crps(data, skewnorm, *params)
-        score = log_score(data, skewnorm, *params)
+        scale = max(scale, 1e-8)
+        params = (shape, loc, scale)
+        delta = mode_delta(params, target_mode)
+        score = mean_score(grades, hist, skewnorm, params, scorer)
         return delta * delta + weight * score
 
     grades = np.arange(1, 40)
@@ -43,10 +55,13 @@ def fit_grade_curve(grade_histogram: np.ndarray) -> tuple[float, float, float]:
     grade_histogram = rescale_peak(grade_histogram.copy(), target_assigned_proportion)
 
     grade_data = histogram_to_data(grades, grade_histogram)
-    params = skewnorm.fit(grade_data)
+    params: tuple[float, ...] = skewnorm.fit(grade_data)
     weight = 3
     res = minimize(
-        opt_func, (0, assigned_grade, 1.0), (grade_data, assigned_grade, weight), "BFGS"
+        opt_func,
+        (0, assigned_grade, 1.0),
+        (grades, grade_histogram, assigned_grade, weight),
+        "BFGS",
     )
     params = tuple(res.x)
     return params

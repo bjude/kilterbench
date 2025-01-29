@@ -1,7 +1,9 @@
-from typing import Iterable
+import functools
+from typing import Iterable, Literal
 
 import numpy as np
-from scipy.integrate import quad
+from scipy import integrate
+from scipy.stats import rv_continuous
 
 
 def histogram_to_data(bins: Iterable[float], counts: Iterable[int]) -> np.ndarray:
@@ -42,22 +44,69 @@ def rescale_peak(hist: np.ndarray, max_peak_ratio: float) -> np.ndarray:
     return hist
 
 
-def log_score(data, dist, *params):
-    unique, counts = np.unique(data, return_counts=True)
-    pdf = dist.pdf(unique, *params)
-    return (-np.log(np.maximum(pdf, 1e-5)) * counts).sum() / counts.sum()
+def log_score(
+    x: float,
+    dist: rv_continuous,
+    params: tuple[float, ...],
+    support: tuple[float, float],
+) -> float:
+    if support[0] <= x <= support[1]:
+        pdf = dist.pdf(x, *params)
+    else:
+        pdf = 0
+    pdf = max(pdf, 1e-5)
+    return -np.log(pdf)
 
 
-def crps(data, dist, *params):
-    total = 0
-    seen = set()
-    for g in data:
-        if g in seen:
-            continue
-        count = (data == g).sum()
-        total += count * quad(lambda x: dist.cdf(x, *params) ** 2, a=-np.inf, b=g)[0]
-        total += (
-            count * quad(lambda x: (1 - dist.cdf(x, *params)) ** 2, a=g, b=np.inf)[0]
+@functools.cache
+def _crps_cdf(
+    dist: rv_continuous,
+    params: tuple[float, ...],
+    x_range: tuple[float, float],
+    n_pts: int = 1000,
+):
+    xs = np.linspace(start=x_range[0], stop=x_range[1], num=n_pts)
+    return xs, dist.cdf(xs, *params)
+
+
+def crps(
+    x: float,
+    dist: rv_continuous,
+    params: tuple[float, ...],
+    support: tuple[float, float],
+) -> float:
+    xs, cdf = _crps_cdf(dist, params, support)
+    if x < support[0]:
+        return integrate.trapezoid((1 - cdf) ** 2, xs)
+    elif x > support[1]:
+        return integrate.trapezoid(cdf**2, xs)
+    assert xs[0] <= x <= xs[-1], (x, xs[0], xs[-1])
+    # Find where x sits in the xs array
+    idx = np.searchsorted(xs, x)
+    # Insert the x value and its corresponding cdf value into the array
+    cdf = np.insert(cdf, idx, np.interp(x, xs, cdf))
+    xs = np.insert(xs, idx, x)
+    # Compute score
+    score = integrate.trapezoid(cdf[: idx + 1] ** 2, xs[: idx + 1])
+    score += integrate.trapezoid((1 - cdf[idx:]) ** 2, xs[idx:])
+    return score
+
+
+def mean_score(
+    xs: np.ndarray,
+    counts: np.ndarray,
+    dist: rv_continuous,
+    params: tuple[float, ...],
+    scorer: Literal["log", "crps"],
+) -> float:
+    assert len(xs) == len(counts)
+    func = {"log": log_score, "crps": crps}[scorer]
+    support = (min(xs) - 20, max(xs) + 20)
+    return (
+        sum(
+            func(x, dist, params, support) * count
+            for x, count in zip(xs, counts)
+            if count != 0
         )
-        seen.add(g)
-    return total / len(data)
+        / counts.sum()
+    )
