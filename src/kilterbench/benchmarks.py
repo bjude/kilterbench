@@ -9,9 +9,8 @@ from scipy.stats import skewnorm
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 
-from kilterbench.kilter_api import KilterAPI
-from kilterbench.stats import (
-    histogram_to_data,
+from src.kilterbench.kilter_api import KilterAPI
+from src.kilterbench.stats import (
     skewnorm_mode,
     mean_score,
     rescale_peak,
@@ -54,8 +53,6 @@ def fit_grade_curve(grade_histogram: np.ndarray) -> tuple[float, float, float]:
     target_assigned_proportion = 0.5
     grade_histogram = rescale_peak(grade_histogram.copy(), target_assigned_proportion)
 
-    grade_data = histogram_to_data(grades, grade_histogram)
-    params: tuple[float, ...] = skewnorm.fit(grade_data)
     weight = 3
     res = minimize(
         opt_func,
