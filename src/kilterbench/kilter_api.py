@@ -1,6 +1,8 @@
 import io
+import datetime
 import time
 from typing import Any, Literal, get_args
+import os
 import uuid
 import sqlite3
 import zipfile
@@ -40,6 +42,7 @@ _INDEX_COLS = {
     "climb_stats": ["climb_uuid_upper", "angle"],
     "circuits": ["uuid_upper"],
 }
+_DB_NAME = "kilter.sqlite"
 
 
 class KilterAPI:
@@ -67,7 +70,13 @@ class KilterAPI:
         payload = response.json()
         self.token = payload["session"]["token"]
         self.user_id = payload["session"]["user_id"]
-        self._download_db()
+        if (
+            not os.path.exists(_DB_NAME)
+            or datetime.timedelta(seconds=time.time() - os.path.getmtime(_DB_NAME)).days
+            > 28
+        ):
+            self._download_db()
+        self._read_db()
         self.sync()
 
     def sync(self, tables: TableLiteral | list[TableLiteral] | None = None) -> None:
@@ -225,23 +234,26 @@ class KilterAPI:
         apk_file = io.BytesIO(response.content)
         with zipfile.ZipFile(apk_file, "r") as zip_file:
             db = zip_file.read("assets/db.sqlite3")
-            with sqlite3.connect(":memory:") as conn:
-                conn.deserialize(db)
-                cursor = conn.cursor()
-                cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-                db_tables = cursor.fetchall()
-                self.tables = {
-                    table: pd.read_sql_query(f"SELECT * FROM {table}", conn)
-                    for table in _ALL_TABLES
-                    if (table,) in db_tables
-                }
-                # Also read some DB specific tables, these arent ones that we can sync from the server
-                self.difficulty_grades = pd.read_sql_query(
-                    "SELECT * FROM difficulty_grades", conn
-                )
-                # Update sync times
-                syncs = pd.read_sql_query("SELECT * FROM shared_syncs", conn)
-                self._sync_times.update({t: d for t, d in syncs.apply(tuple, axis=1)})
+            with open(_DB_NAME, "wb") as f_out:
+                f_out.write(db)
+
+    def _read_db(self) -> None:
+        with sqlite3.connect(_DB_NAME) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+            db_tables = cursor.fetchall()
+            self.tables = {
+                table: pd.read_sql_query(f"SELECT * FROM {table}", conn)
+                for table in _ALL_TABLES
+                if (table,) in db_tables
+            }
+            # Also read some DB specific tables, these arent ones that we can sync from the server
+            self.difficulty_grades = pd.read_sql_query(
+                "SELECT * FROM difficulty_grades", conn
+            )
+            # Update sync times
+            syncs = pd.read_sql_query("SELECT * FROM shared_syncs", conn)
+            self._sync_times.update({t: d for t, d in syncs.apply(tuple, axis=1)})
         # Ensure that any UUID columns are all upper case
         for table_name, table in self.tables.items():
             for col in [c for c in table.columns if c.endswith("uuid")]:
