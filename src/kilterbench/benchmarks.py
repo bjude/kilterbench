@@ -104,12 +104,6 @@ def get_popular(
     return popular_climbs
 
 
-def fit(row, session) -> pd.Series:
-    hist = grade_histogram(session, row.climb_uuid, int(row.angle))
-    params = fit_grade_curve(hist)
-    return pd.Series(params, index=["shape", "loc", "scale"])
-
-
 def _parallel_hist(uuid: str, angle: int):
     return grade_histogram(session, uuid, int(angle))
 
