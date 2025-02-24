@@ -11,21 +11,21 @@ def add_fit_subparser(subparsers: argparse._SubParsersAction):
         "fit", help="Fit statistical parameters to the climb grade distributions"
     )
 
+    parser.add_argument("-u", "--username", help="Username", required=True)
+    parser.add_argument("-p", "--password", help="Password", required=True)
     parser.add_argument(
         "--min_repeats",
         help="Minimum number of repeats to consider when identifying benchmarks",
         type=int,
         default=1000,
     )
-    parser.add_argument(
-        "--save",
-        help="Store the fitted distributions in a json file",
-        action="store_true",
-    )
 
 
 def add_circuit_subparser(subparsers: argparse._SubParsersAction):
     parser = subparsers.add_parser("circuit", help="Create Circuits")
+
+    parser.add_argument("-u", "--username", help="Username", required=True)
+    parser.add_argument("-p", "--password", help="Password", required=True)
     parser.add_argument(
         "--prefix",
         type=str,
@@ -51,21 +51,18 @@ def main():
     subparsers = parser.add_subparsers(dest="command", required=True)
     add_fit_subparser(subparsers)
     add_circuit_subparser(subparsers)
-
-    # Username and pass needed for fitting and creating circuits
-    parser.add_argument("-u", "--username", help="Username", required=True)
-    parser.add_argument("-p", "--password", help="Password", required=True)
+    add_plot_subparser(subparsers)
 
     args = parser.parse_args()
 
-    session = kilter_api.KilterAPI(args.username, args.password)
-    if args.command == "bench":
-        benches = benchmarks.get_benchmarks(session, 1000)
-        if args.save:
-            benches.to_json("benches.json")
-    elif args.command == "circuit":
+    if args.command == "fit":
+        session = kilter_api.KilterAPI(args.username, args.password)
+        benches = benchmarks.get_benchmarks(session, args.min_repeats)
+        benches.to_json("benches.json")
+    if args.command == "circuit":
         print("Reading json")
         benches = pd.read_json("benches.json").sort_values("mode")
+        session = kilter_api.KilterAPI(args.username, args.password)
         for angle in benches["angle"].sort_values().unique():
             bench_mask = benches["shape"].abs() < args.max_skew
             angle_mask = benches["angle"] == angle
