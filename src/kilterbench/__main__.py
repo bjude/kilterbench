@@ -1,4 +1,5 @@
 import pandas as pd
+import seaborn as sn
 
 import argparse
 
@@ -46,6 +47,15 @@ def add_circuit_subparser(subparsers: argparse._SubParsersAction):
     )
 
 
+def add_plot_subparser(subparsers: argparse._SubParsersAction):
+    parser = subparsers.add_parser("plot", help="Plot climb statistics")
+    parser.add_argument(
+        "--summary",
+        help="Plot the summary distributions for each angle",
+        action="store_true",
+    )
+
+
 def main():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -71,6 +81,26 @@ def main():
             print(f"Making circuit: '{circuit_name}' with {len(uuids)} climbs")
             circuit_id = session.make_new_circuit(circuit_name)
             session.set_circuit(circuit_id, uuids)
+    elif args.command == "plot":
+        benches = pd.read_json("benches.json").sort_values("mode")
+        scale_lim = (0, 3)
+        shape_lim = (-3, 3)
+
+        benches["shape_clip"] = benches["shape"].clip(*shape_lim)
+        benches["scale_clip"] = benches["scale"].clip(*scale_lim)
+
+        for angle in sorted(benches["angle"].unique()):
+            angle_mask = benches["angle"] == angle
+            angle_benches = benches[angle_mask]
+            sn.jointplot(
+                angle_benches,
+                x="shape",
+                y="scale",
+                kind="scatter",
+                xlim=shape_lim,
+                ylim=scale_lim,
+                marginal_kws={"binrange": shape_lim, "bins": 20},
+            ).savefig(f"plots/bench_summary_{angle:>02}.png")
 
 
 if __name__ == "__main__":

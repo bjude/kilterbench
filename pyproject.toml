@@ -14,7 +14,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-dependencies = ["requests", "pandas", "scipy", "matplotlib"]
+dependencies = ["requests", "pandas", "scipy", "matplotlib", 'seaborn']
 
 [project.scripts]
 kilterbench = "kilterbench.__main__:main"
