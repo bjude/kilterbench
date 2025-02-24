@@ -74,21 +74,31 @@ def crps(
     dist: rv_continuous,
     params: tuple[float, ...],
     support: tuple[float, float],
+    approx: bool = True,
 ) -> float:
-    xs, cdf = _crps_cdf(dist, params, support)
-    if x < support[0]:
-        return integrate.trapezoid((1 - cdf) ** 2, xs)
-    elif x > support[1]:
-        return integrate.trapezoid(cdf**2, xs)
-    assert xs[0] <= x <= xs[-1], (x, xs[0], xs[-1])
-    # Find where x sits in the xs array
-    idx = np.searchsorted(xs, x)
-    # Insert the x value and its corresponding cdf value into the array
-    cdf = np.insert(cdf, idx, np.interp(x, xs, cdf))
-    xs = np.insert(xs, idx, x)
-    # Compute score
-    score = integrate.trapezoid(cdf[: idx + 1] ** 2, xs[: idx + 1])
-    score += integrate.trapezoid((1 - cdf[idx:]) ** 2, xs[idx:])
+    if approx:
+        xs, cdf = _crps_cdf(dist, params, support)
+        if x < support[0]:
+            return integrate.trapezoid((1 - cdf) ** 2, xs)
+        elif x > support[1]:
+            return integrate.trapezoid(cdf**2, xs)
+        assert xs[0] <= x <= xs[-1], (x, xs[0], xs[-1])
+        # Find where x sits in the xs array
+        idx = np.searchsorted(xs, x)
+        # Insert the x value and its corresponding cdf value into the array
+        cdf = np.insert(cdf, idx, np.interp(x, xs, cdf))
+        xs = np.insert(xs, idx, x)
+        # Compute score
+        score = integrate.trapezoid(cdf[: idx + 1] ** 2, xs[: idx + 1])
+        score += integrate.trapezoid((1 - cdf[idx:]) ** 2, xs[idx:])
+
+    else:
+        score = (
+            integrate.quad(lambda x: dist.cdf(x, *params) ** 2, a=support[0], b=x)[0]
+            + integrate.quad(
+                lambda x: (1 - dist.cdf(x, *params)) ** 2, a=x, b=support[1]
+            )[0]
+        )
     return score
 
 
