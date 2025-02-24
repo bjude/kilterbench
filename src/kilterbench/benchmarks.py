@@ -22,7 +22,9 @@ def grade_histogram(session: KilterAPI, climb_id: str, angle: int) -> np.ndarray
     return grades
 
 
-def fit_grade_curve(grade_histogram: np.ndarray) -> tuple[float, float, float]:
+def fit_grade_curve(
+    grade_histogram: np.ndarray, weight: float = 10.0
+) -> tuple[float, float, float]:
     scorer = "crps"
 
     def mode_delta(params: tuple[float, ...], target_mode: float) -> float:
@@ -34,13 +36,14 @@ def fit_grade_curve(grade_histogram: np.ndarray) -> tuple[float, float, float]:
         hist: np.ndarray,
         target_mode: float,
         weight: float,
+        baseline: float,
     ) -> float:
         shape, loc, scale = params
         scale = max(scale, 1e-8)
         params = (shape, loc, scale)
         delta = mode_delta(params, target_mode)
-        score = mean_score(grades, hist, skewnorm, params, scorer)
-        return delta * delta + weight * score
+        score = mean_score(grades, hist, skewnorm, params, scorer) - baseline
+        return delta * delta + (weight * score) ** 2
 
     grades = np.arange(1, 40)
     idxmax = grade_histogram.argmax()
@@ -48,12 +51,14 @@ def fit_grade_curve(grade_histogram: np.ndarray) -> tuple[float, float, float]:
 
     target_assigned_proportion = 0.5
     grade_histogram = rescale_peak(grade_histogram.copy(), target_assigned_proportion)
+    params: tuple[float, ...] = skewnorm.fit(histogram_to_data(grades, grade_histogram))
+    baseline = mean_score(grades, grade_histogram, skewnorm, params, scorer)
 
     weight = 3
     res = minimize(
         opt_func,
         (0, assigned_grade, 1.0),
-        (grades, grade_histogram, assigned_grade, weight),
+        (grades, grade_histogram, assigned_grade, weight, baseline),
         "BFGS",
     )
     params = tuple(res.x)
