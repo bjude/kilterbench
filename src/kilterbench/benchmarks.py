@@ -36,14 +36,13 @@ def fit_grade_curve(
         hist: np.ndarray,
         target_mode: float,
         weight: float,
-        baseline: float,
     ) -> float:
         shape, loc, scale = params
         scale = max(scale, 1e-8)
         params = (shape, loc, scale)
         delta = mode_delta(params, target_mode)
-        score = mean_score(grades, hist, skewnorm, params, scorer) - baseline
-        return delta * delta + (weight * score) ** 2
+        score = mean_score(grades, hist, skewnorm, params, scorer)
+        return delta * delta + weight * score
 
     grades = np.arange(1, 40)
     idxmax = grade_histogram.argmax()
@@ -51,14 +50,11 @@ def fit_grade_curve(
 
     target_assigned_proportion = 0.5
     grade_histogram = rescale_peak(grade_histogram.copy(), target_assigned_proportion)
-    params: tuple[float, ...] = skewnorm.fit(histogram_to_data(grades, grade_histogram))
-    baseline = mean_score(grades, grade_histogram, skewnorm, params, scorer)
 
-    weight = 3
     res = minimize(
         opt_func,
         (0, assigned_grade, 1.0),
-        (grades, grade_histogram, assigned_grade, weight, baseline),
+        (grades, grade_histogram, assigned_grade, weight),
         "BFGS",
     )
     params = tuple(res.x)
