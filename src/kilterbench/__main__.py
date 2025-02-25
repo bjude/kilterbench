@@ -73,7 +73,7 @@ def main():
 
     if args.command == "fit":
         session = kilter_api.KilterAPI(args.username, args.password)
-        cores = args.cores if args.cores > 0 else None
+        cores = args.parallel if args.parallel > 0 else None
         benches = benchmarks.get_benchmarks(
             session, args.min_repeats, num_processes=cores
         )
