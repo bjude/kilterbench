@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "kilterbench"
 version = "0.1.0"
-authors = [{ name = "Ben Jude"}]
+authors = [{ name = "Ben Jude" }]
 description = "Utility for finding benchmarks on the Kilter Board"
 readme = "README.md"
 requires-python = ">=3.8"
