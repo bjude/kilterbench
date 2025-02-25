@@ -18,7 +18,7 @@ def add_fit_subparser(subparsers: argparse._SubParsersAction):
         "--min_repeats",
         help="Minimum number of repeats to consider when identifying benchmarks",
         type=int,
-        default=1000,
+        default=500,
     )
 
 
