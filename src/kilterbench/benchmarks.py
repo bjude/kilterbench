@@ -138,6 +138,7 @@ def get_benchmarks(
     with multiprocessing.Pool(
         processes=num_processes, initializer=_worker_init, initargs=(session,)
     ) as pool:
+        print("Retrieving Histograms...")
         histograms = pool.starmap(
             _parallel_hist,
             zip(
@@ -145,12 +146,11 @@ def get_benchmarks(
                 popular["angle"].to_list(),
             ),
         )
-        print("Histograms retrieved...")
+        print("Fitting Curves...")
         params = pool.map(fit_grade_curve, histograms)
         params_df = pd.DataFrame(
             params, index=popular.index, columns=["shape", "loc", "scale"]
         )
-        print("Curves Fitted")
 
     grades_df = session.difficulty_grades
     params_df["mode"] = params_df.apply(lambda p: skewnorm_mode(*p), axis=1)
@@ -159,4 +159,5 @@ def get_benchmarks(
         grades_df["boulder_name"].str.split("/").str[1],
         on=joined["mode"].round().astype(int),
     ).rename(columns={"boulder_name": "grade"})
+    print("Benchmarking Complete")
     return joined

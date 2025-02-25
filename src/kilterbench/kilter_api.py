@@ -75,8 +75,11 @@ class KilterAPI:
             or datetime.timedelta(seconds=time.time() - os.path.getmtime(_DB_NAME)).days
             > 28
         ):
+            print("No DB found or DB is too old, downloading...")
             self._download_db()
+        print("Loading DB...")
         self._read_db()
+        print("Syncing DB updates...")
         self.sync()
 
     def sync(self, tables: TableLiteral | list[TableLiteral] | None = None) -> None:
