@@ -20,6 +20,12 @@ def add_fit_subparser(subparsers: argparse._SubParsersAction):
         type=int,
         default=500,
     )
+    parser.add_argument(
+        "--parallel",
+        help="The number of cores to use when fitting ascent distributions. Pass 0 to use all available cores",
+        type=int,
+        default=0,
+    )
 
 
 def add_circuit_subparser(subparsers: argparse._SubParsersAction):
@@ -67,7 +73,10 @@ def main():
 
     if args.command == "fit":
         session = kilter_api.KilterAPI(args.username, args.password)
-        benches = benchmarks.get_benchmarks(session, args.min_repeats)
+        cores = args.cores if args.cores > 0 else None
+        benches = benchmarks.get_benchmarks(
+            session, args.min_repeats, num_processes=cores
+        )
         benches.to_json("benches.json")
     if args.command == "circuit":
         print("Reading json")
