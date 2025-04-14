@@ -83,13 +83,14 @@ def main():
         benches = pd.read_json("benches.json").sort_values("mode")
         session = kilter_api.KilterAPI(args.username, args.password)
         for angle in benches["angle"].sort_values().unique():
-            bench_mask = benches["shape"].abs() < args.max_skew
-            angle_mask = benches["angle"] == angle
-            uuids = benches[bench_mask & angle_mask]["climb_uuid"].to_list()
-            circuit_name = f"{args.prefix} - {angle:>02}"
-            print(f"Making circuit: '{circuit_name}' with {len(uuids)} climbs")
-            circuit_id = session.make_new_circuit(circuit_name)
-            session.set_circuit(circuit_id, uuids)
+            if not args.angles or angle in args.angles:
+                bench_mask = benches["shape"].abs() < args.max_skew
+                angle_mask = benches["angle"] == angle
+                uuids = benches[bench_mask & angle_mask]["climb_uuid"].to_list()
+                circuit_name = f"{args.prefix} - {angle:>02}"
+                print(f"Making circuit: '{circuit_name}' with {len(uuids)} climbs")
+                circuit_id = session.make_new_circuit(circuit_name)
+                session.set_circuit(circuit_id, uuids)
     elif args.command == "plot":
         benches = pd.read_json("benches.json").sort_values("mode")
         scale_lim = (0, 3)
