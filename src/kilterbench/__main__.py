@@ -64,11 +64,20 @@ def add_circuit_subparser(subparsers: argparse._SubParsersAction):
         nargs="*",
         help="Angles to consider, by default a circuit will be generated for all available angles",
     )
+    # parser.add_argument(
+    #     "--max_skew",
+    #     type=float,
+    #     help="Maximum value of the shape parameter of the fitted skewed normal distributions",
+    #     default=1.0,
+    # )
     parser.add_argument(
-        "--max_skew",
+        "--skew_range",
         type=float,
-        help="Maximum value of the shape parameter of the fitted skewed normal distributions",
-        default=1.0,
+        nargs=2,
+        metavar=("MIN", "MAX"),
+        help="Range of the shape parameter of the fitted skewed normal distributions",
+        default=[-1.0, 1.0],
+    )
     parser.add_argument(
         "--grades",
         type=str,
@@ -127,7 +136,9 @@ def main():
         session = kilter_api.KilterAPI(args.username, args.password)
         for angle in benches["angle"].sort_values().unique():
             if not args.angles or angle in args.angles:
-                bench_mask = benches["shape"].abs() < args.max_skew
+                bench_mask = (benches["shape"].abs() >= args.skew_range[0]) & (
+                    benches["shape"].abs() < args.skew_range[1]
+                )
                 angle_mask = benches["angle"] == angle
                 grade_mask = benches["grade"].isin(args.grades) if args.grades else True
                 repeat_mask = benches["ascensionist_count"] > args.min_repeats
@@ -137,6 +148,7 @@ def main():
                 print(f"Making circuit: '{circuit_name}' with {len(uuids)} climbs")
                 circuit_id = session.make_new_circuit(circuit_name)
                 session.set_circuit(circuit_id, uuids)
+
     elif args.command == "plot":
         benches = pd.read_json("benches.json").sort_values("mode")
         scale_lim = (0, 3)
