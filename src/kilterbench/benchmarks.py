@@ -90,7 +90,10 @@ def plot_model(
 
 
 def get_popular(
-    session: KilterAPI, minimum_ascents: int, angle: int | None = None
+    session: KilterAPI,
+    minimum_ascents: int,
+    angles: List[int] = [],
+    layouts: List[int] = [1],
 ) -> pd.DataFrame:
     climbs = session.tables["climbs"].set_index("uuid_upper")
     climb_stats = session.tables["climb_stats"]
@@ -98,10 +101,20 @@ def get_popular(
         climbs,
         on="climb_uuid_upper",
         rsuffix="_r",
-    )[["climb_uuid", "angle", "name", "ascensionist_count", "setter_username"]]
+    )[
+        [
+            "climb_uuid",
+            "layout_id",
+            "angle",
+            "name",
+            "ascensionist_count",
+            "setter_username",
+        ]
+    ]
     popular_climbs = all_climbs[all_climbs["ascensionist_count"] >= minimum_ascents]
-    if angle is not None:
-        popular_climbs = popular_climbs[popular_climbs["angle"] == angle]
+    popular_climbs = popular_climbs[popular_climbs["layout_id"].isin(layouts)]
+    if angles:
+        popular_climbs = popular_climbs[popular_climbs["angle"].isin(angles)]
     return popular_climbs
 
 
@@ -123,10 +136,11 @@ def _worker_init(_session: KilterAPI):
 def get_benchmarks(
     session: KilterAPI,
     minimum_ascents: int,
-    angle: int | None = None,
     num_processes: int | None = None,
+    angles: List[int] = [],
+    layouts: List[int] = [1],
 ) -> pd.DataFrame:
-    popular = get_popular(session, minimum_ascents, angle)
+    popular = get_popular(session, minimum_ascents, angles, layouts)
 
     session = copy.copy(session)
     session.reset()
@@ -155,5 +169,6 @@ def get_benchmarks(
         grades_df["boulder_name"].str.split("/").str[1],
         on=joined["mode"].round().astype(int),
     ).rename(columns={"boulder_name": "grade"})
+
     print("Benchmarking Complete")
-    return joined
+    return joined, histograms

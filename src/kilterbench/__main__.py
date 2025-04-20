@@ -26,6 +26,19 @@ def add_fit_subparser(subparsers: argparse._SubParsersAction):
         type=int,
         default=0,
     )
+    parser.add_argument(
+        "--angles",
+        type=int,
+        nargs="*",
+        help="Angles to consider, by default all available angles will be fitted",
+    )
+    parser.add_argument(
+        "--layouts",
+        type=int,
+        nargs="*",
+        default=[1],
+        help="Layouts to consider. By default only the 'Kilter Board Original' layout is considered",
+    )
 
 
 def add_circuit_subparser(subparsers: argparse._SubParsersAction):
@@ -74,8 +87,12 @@ def main():
     if args.command == "fit":
         session = kilter_api.KilterAPI(args.username, args.password)
         cores = args.parallel if args.parallel > 0 else None
-        benches = benchmarks.get_benchmarks(
-            session, args.min_repeats, num_processes=cores
+        benches, histograms = benchmarks.get_benchmarks(
+            session,
+            args.min_repeats,
+            num_processes=cores,
+            angles=args.angles,
+            layouts=args.layouts,
         )
         benches.to_json("benches.json")
     if args.command == "circuit":
