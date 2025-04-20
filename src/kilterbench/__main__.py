@@ -2,6 +2,7 @@ import pandas as pd
 import seaborn as sn
 
 import argparse
+import os
 import warnings
 
 from kilterbench import kilter_api
@@ -23,7 +24,7 @@ def add_fit_subparser(subparsers: argparse._SubParsersAction):
     )
     parser.add_argument(
         "--parallel",
-        help="The number of cores to use when fitting ascent distributions. Pass 0 to use all available cores",
+        help="The number of cores to use when fitting ascent distributions. Pass 0 to use all available cores (default)",
         type=int,
         default=0,
     )
@@ -32,6 +33,11 @@ def add_fit_subparser(subparsers: argparse._SubParsersAction):
         type=int,
         nargs="*",
         help="Angles to consider, by default all available angles will be fitted",
+    )
+    parser.add_argument(
+        "--save_plots",
+        action="store_true",
+        help="Save plots of fitted grade curve for every climb",
     )
 
 
@@ -85,6 +91,21 @@ def main():
             session, args.min_repeats, num_processes=cores, angles=args.angles or None
         )
         benches.to_json("benches.json")
+
+        if args.save_plots:
+            print("Saving Plots...")
+            os.makedirs("benchmark_plots", exist_ok=True)
+            for row in benches.itertuples():
+                hist = benchmarks.grade_histogram(session, row.climb_uuid, row.angle)
+                # NOTE: The scaled histogram is used here because if we dont clip the assigned grade then it
+                # will completely dwarf the rest of the histogram. The value of 0.5 is hardcoded here to match 
+                # the value used in benchmarks.fit_grade_curve
+                hist = benchmarks.rescale_peak(hist, 0.5)
+                label = f"{row.name} @ {row.angle}° - {row.grade}"
+                params = (row.shape, row.loc, row.scale)
+                fig = benchmarks.plot_model(hist, params, label)
+                fig.savefig(f"benchmark_plots/{row.name}_{row.angle}.png")
+
     if args.command == "circuit":
         print("Reading json")
         benches = pd.read_json("benches.json").sort_values("mode")
@@ -115,6 +136,7 @@ def main():
         benches["shape_clip"] = benches["shape"].clip(*shape_lim)
         benches["scale_clip"] = benches["scale"].clip(*scale_lim)
 
+        os.makedirs("plots", exist_ok=True)
         for angle in sorted(benches["angle"].unique()):
             angle_mask = benches["angle"] == angle
             angle_benches = benches[angle_mask]

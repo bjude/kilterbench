@@ -49,6 +49,8 @@ def fit_grade_curve(
     assigned_grade: int = grades[idxmax]
 
     target_assigned_proportion = 0.5
+    # NOTE: The scaled histogram is used here because if we dont clip the assigned grade then it
+    # will completely dwarf the rest of the histogram.
     grade_histogram = rescale_peak(grade_histogram.copy(), target_assigned_proportion)
 
     res = minimize(
