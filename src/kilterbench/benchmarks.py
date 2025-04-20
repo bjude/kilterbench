@@ -80,9 +80,11 @@ def plot_model(
 
     fig.suptitle(label)
     ax1.set_title(
-        "\n".join(
+        ", ".join(
             [
-                f"shape: {params[0]:.2f}, loc: {params[1]:.2f}, scale: {params[2]:.2f}",
+                f"shape: {params[0]:.2f}",
+                f"loc: {params[1]:.2f}",
+                f"scale: {params[2]:.2f}",
                 f"mode: {skewnorm_mode(*params):.2f}",
             ]
         ),
