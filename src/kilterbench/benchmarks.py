@@ -12,6 +12,8 @@ from matplotlib.figure import Figure
 from kilterbench.kilter_api import KilterAPI
 from kilterbench.stats import skewnorm_mode, mean_score, rescale_peak, histogram_to_data
 
+from typing import List
+
 
 @cache
 def grade_histogram(session: KilterAPI, climb_id: str, angle: int) -> np.ndarray:
