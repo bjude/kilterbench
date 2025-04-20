@@ -136,8 +136,8 @@ def main():
         session = kilter_api.KilterAPI(args.username, args.password)
         for angle in benches["angle"].sort_values().unique():
             if not args.angles or angle in args.angles:
-                bench_mask = (benches["shape"].abs() >= args.skew_range[0]) & (
-                    benches["shape"].abs() < args.skew_range[1]
+                bench_mask = (benches["shape"] >= args.skew_range[0]) & (
+                    benches["shape"] <= args.skew_range[1]
                 )
                 angle_mask = benches["angle"] == angle
                 grade_mask = benches["grade"].isin(args.grades) if args.grades else True
