@@ -82,8 +82,8 @@ def plot_model(
     ax1.set_title(
         "\n".join(
             [
-                f"shape: {params[0]:.2f}, loc: {params[1]:.2f}, scale: {params[2]:.2f}",
-                f"mode: {skewnorm_mode(*params):.2f}",
+                f"shape: {params[0]:.2f}, loc: {params[1]:.2f}, scale: {params[2]:.2f}, mode: {skewnorm_mode(*params):.2f}",
+                # f"mode: {skewnorm_mode(*params):.2f}",
             ]
         ),
         size=10,
