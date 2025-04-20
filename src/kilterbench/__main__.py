@@ -58,11 +58,23 @@ def add_circuit_subparser(subparsers: argparse._SubParsersAction):
         nargs="*",
         help="Angles to consider, by default a circuit will be generated for all available angles",
     )
-    parser.add_argument(
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
         "--max_skew",
         type=float,
-        help="Maximum value of the shape parameter of the fitted skewed normal distributions",
+        help="Maximum value of the shape parameter of the fitted skewed normal distributions. Incompatible "
+        "with also specifying `--skew_range`",
         default=1.0,
+    )
+    group.add_argument(
+        "--skew_range",
+        type=float,
+        nargs=2,
+        metavar=("MIN_SKEW", "MAX_SKEW"),
+        help="Range of the shape parameter of the fitted skewed normal distributions. Incompatible with also "
+        "specifying `--max_skew`",
+        default=None,
     )
 
 
@@ -98,7 +110,7 @@ def main():
             for row in benches.itertuples():
                 hist = benchmarks.grade_histogram(session, row.climb_uuid, row.angle)
                 # NOTE: The scaled histogram is used here because if we dont clip the assigned grade then it
-                # will completely dwarf the rest of the histogram. The value of 0.5 is hardcoded here to match 
+                # will completely dwarf the rest of the histogram. The value of 0.5 is hardcoded here to match
                 # the value used in benchmarks.fit_grade_curve
                 hist = benchmarks.rescale_peak(hist, 0.5)
                 label = f"{row.name} @ {row.angle}° - {row.grade}"
@@ -114,7 +126,9 @@ def main():
             if args.angles and angle not in args.angles:
                 # Angles passed on the command line and does not include the angle being processed, skip
                 continue
-            bench_mask = benches["shape"].abs() < args.max_skew
+            skew_range = args.skew_range or (-args.max_skew, args.max_skew)
+            bench_mask = benches["shape"] > skew_range[0]
+            bench_mask &= benches["shape"] < skew_range[1]
             angle_mask = benches["angle"] == angle
             uuids = benches[bench_mask & angle_mask]["climb_uuid"].to_list()
             if len(uuids) == 0:
