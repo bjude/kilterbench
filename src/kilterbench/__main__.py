@@ -2,6 +2,7 @@ import pandas as pd
 import seaborn as sn
 
 import argparse
+import os
 
 from kilterbench import kilter_api
 from kilterbench import benchmarks
@@ -22,7 +23,7 @@ def add_fit_subparser(subparsers: argparse._SubParsersAction):
     )
     parser.add_argument(
         "--parallel",
-        help="The number of cores to use when fitting ascent distributions. Pass 0 to use all available cores",
+        help="The number of cores to use when fitting ascent distributions. Pass 0 to use all available cores (default)",
         type=int,
         default=0,
     )
@@ -38,6 +39,11 @@ def add_fit_subparser(subparsers: argparse._SubParsersAction):
         nargs="*",
         default=[1],
         help="Layouts to consider. By default only the 'Kilter Board Original' layout is considered",
+    )
+    parser.add_argument(
+        "--save_plots",
+        action="store_true",
+        help="Save plots for every climb",
     )
 
 
@@ -95,6 +101,15 @@ def main():
             layouts=args.layouts,
         )
         benches.to_json("benches.json")
+
+        if args.save_plots:
+            os.makedirs("benchmark_plots", exist_ok=True)
+            for idx, (row, hist) in enumerate(zip(benches.itertuples(), histograms)):
+                label = f"{row.name} @ {row.angle}° - {row.grade}"
+                params = (row.shape, row.loc, row.scale)
+                fig = benchmarks.plot_model(hist, params, label)
+                fig.savefig(f"benchmark_plots/{row.climb_uuid}_{row.angle}.png")
+
     if args.command == "circuit":
         print("Reading json")
         benches = pd.read_json("benches.json").sort_values("mode")
@@ -116,6 +131,7 @@ def main():
         benches["shape_clip"] = benches["shape"].clip(*shape_lim)
         benches["scale_clip"] = benches["scale"].clip(*scale_lim)
 
+        os.makedirs("plots", exist_ok=True)
         for angle in sorted(benches["angle"].unique()):
             angle_mask = benches["angle"] == angle
             angle_benches = benches[angle_mask]
