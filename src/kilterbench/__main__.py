@@ -69,6 +69,17 @@ def add_circuit_subparser(subparsers: argparse._SubParsersAction):
         type=float,
         help="Maximum value of the shape parameter of the fitted skewed normal distributions",
         default=1.0,
+    parser.add_argument(
+        "--grades",
+        type=str,
+        nargs="*",
+        help="Grades to include (V0, V1...)",
+    )
+    parser.add_argument(
+        "--min_repeats",
+        help="Minimum number of repeats to consider",
+        type=int,
+        default=500,
     )
 
 
@@ -118,8 +129,11 @@ def main():
             if not args.angles or angle in args.angles:
                 bench_mask = benches["shape"].abs() < args.max_skew
                 angle_mask = benches["angle"] == angle
-                uuids = benches[bench_mask & angle_mask]["climb_uuid"].to_list()
-                circuit_name = f"{args.prefix} - {angle:>02}"
+                grade_mask = benches["grade"].isin(args.grades) if args.grades else True
+                repeat_mask = benches["ascensionist_count"] > args.min_repeats
+                uuids = benches[bench_mask & angle_mask & grade_mask & repeat_mask][
+                    "climb_uuid"
+                ].to_list()
                 print(f"Making circuit: '{circuit_name}' with {len(uuids)} climbs")
                 circuit_id = session.make_new_circuit(circuit_name)
                 session.set_circuit(circuit_id, uuids)
