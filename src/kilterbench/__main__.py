@@ -3,6 +3,7 @@ import seaborn as sn
 
 import argparse
 import os
+import re
 import warnings
 
 from kilterbench import kilter_api
@@ -116,7 +117,9 @@ def main():
                 label = f"{row.name} @ {row.angle}° - {row.grade}"
                 params = (row.shape, row.loc, row.scale)
                 fig = benchmarks.plot_model(hist, params, label)
-                fig.savefig(f"benchmark_plots/{row.name}_{row.angle}.png")
+                # Remove any invalid characters from the filename
+                clean_name  = re.sub(r'[\\/*?:"<>|]', "", row.name).strip()
+                fig.savefig(f"benchmark_plots/{clean_name}_{row.angle}.png")
 
     if args.command == "circuit":
         print("Reading json")
