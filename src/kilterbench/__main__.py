@@ -83,6 +83,9 @@ def main():
         benches = pd.read_json("benches.json").sort_values("mode")
         session = kilter_api.KilterAPI(args.username, args.password)
         for angle in benches["angle"].sort_values().unique():
+            if args.angles and angle not in args.angles:
+                # Angles passed on the command line and does not include the angle being processed, skip
+                continue
             bench_mask = benches["shape"].abs() < args.max_skew
             angle_mask = benches["angle"] == angle
             uuids = benches[bench_mask & angle_mask]["climb_uuid"].to_list()
