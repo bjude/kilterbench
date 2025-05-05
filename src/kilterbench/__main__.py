@@ -2,6 +2,7 @@ import pandas as pd
 import seaborn as sn
 
 import argparse
+import warnings
 
 from kilterbench import kilter_api
 from kilterbench import benchmarks
@@ -25,6 +26,12 @@ def add_fit_subparser(subparsers: argparse._SubParsersAction):
         help="The number of cores to use when fitting ascent distributions. Pass 0 to use all available cores",
         type=int,
         default=0,
+    )
+    parser.add_argument(
+        "--angles",
+        type=int,
+        nargs="*",
+        help="Angles to consider, by default all available angles will be fitted",
     )
 
 
@@ -75,7 +82,7 @@ def main():
         session = kilter_api.KilterAPI(args.username, args.password)
         cores = args.parallel if args.parallel > 0 else None
         benches = benchmarks.get_benchmarks(
-            session, args.min_repeats, num_processes=cores
+            session, args.min_repeats, num_processes=cores, angles=args.angles or None
         )
         benches.to_json("benches.json")
     if args.command == "circuit":
@@ -89,6 +96,13 @@ def main():
             bench_mask = benches["shape"].abs() < args.max_skew
             angle_mask = benches["angle"] == angle
             uuids = benches[bench_mask & angle_mask]["climb_uuid"].to_list()
+            if len(uuids) == 0:
+                warnings.warn(
+                    f"Angle {angle} contains no climbs. This may be because `kilterbench fit` was called without "
+                    "requesting this angle, or other filtering parameters like the maximum skew or minimum number "
+                    "of repeats may screened out all climbs."
+                )
+                continue
             circuit_name = f"{args.prefix} - {angle:>02}"
             print(f"Making circuit: '{circuit_name}' with {len(uuids)} climbs")
             circuit_id = session.make_new_circuit(circuit_name)
