@@ -43,6 +43,9 @@ _INDEX_COLS = {
     "circuits": ["uuid_upper"],
 }
 _DB_NAME = "kilter.sqlite"
+HEADERS = {
+    "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 14; Android SDK built for x86_64 Build/UE1A.230829.036.A1)"
+}
 
 
 class KilterAPI:
@@ -65,6 +68,7 @@ class KilterAPI:
                 "pp": "accepted",
                 "ua": "app",
             },
+            headers=HEADERS,
         )
         response.raise_for_status()
         payload = response.json()
@@ -103,6 +107,7 @@ class KilterAPI:
                 f"{self._URL}/sync",
                 data=sync_times,
                 cookies={"token": self.token},
+                headers=HEADERS,
             )
             response.raise_for_status()
             json = response.json()
@@ -150,6 +155,7 @@ class KilterAPI:
             f"{self._URL}/climbs/{climb_uuid}/info",
             params={"angle": angle},
             cookies={"token": self.token},
+            headers=HEADERS,
         )
         response.raise_for_status()
         return response.json()
@@ -189,6 +195,7 @@ class KilterAPI:
                 "is_public": 1 if is_public else 0,
             },
             cookies={"token": self.token},
+            headers=HEADERS,
         )
         response.raise_for_status()
         payload = response.json()
@@ -204,6 +211,7 @@ class KilterAPI:
                 "climb_uuids[]": climb_ids,
             },
             cookies={"token": self.token},
+            headers=HEADERS,
         )
         response.raise_for_status()
         payload = response.json()
